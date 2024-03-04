@@ -1,6 +1,5 @@
 const express = require("express");
 const app = express();
-// const cors = require("cors");
 const connectToDb = require("../db");
 const User = require("../model");
 const bcrypt = require("bcryptjs");
@@ -8,7 +7,6 @@ const jwt = require("jsonwebtoken");
 const cookieParser = require("cookie-parser");
 connectToDb();
 
-// app.use(cors());
 app.use(express.json());
 app.use(cookieParser());
 
