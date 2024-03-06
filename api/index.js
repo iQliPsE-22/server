@@ -17,7 +17,7 @@ app.post("/user", async (req, res) => {
     console.log(req.body);
     const { name, email, password } = req.body;
     const existingUser = await User.findOne({ email });
-    if (existingUser) res.status(401).send("User already exist");
+    if (existingUser) return res.status(401).send("User already exist");
 
     const encryptedPass = await bcrypt.hash(password, 10);
     const user = await User.create({ name, email, password: encryptedPass });
@@ -42,8 +42,6 @@ app.post("/user", async (req, res) => {
       token,
       user,
     });
-    res.status(201).json(user);
-    await user.save();
     res.status(201).json({ message: "User created successfully" });
   } catch (err) {
     res.status(500).json({ message: "Error creating User" });
