@@ -2,26 +2,44 @@ const express = require("express");
 const app = express();
 const cors = require("cors");
 const connectToDb = require("../db");
-const User = require("../model");
+const { User, Chat } = require("../model");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const cookieParser = require("cookie-parser");
+const multer = require("multer"); // Allow image to be uploaded to the database
+
 connectToDb();
 
 app.use(cors());
 app.use(express.json());
 app.use(cookieParser());
 
-app.post("/user", async (req, res) => {
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage });
+
+app.post("/user", upload.single("profilePicture"), async (req, res) => {
   try {
     console.log(req.body);
+    console.log(req.file);
     const { name, email, password } = req.body;
     const existingUser = await User.findOne({ email });
-    if (existingUser) return res.status(401).send("User already exist");
+    if (existingUser)
+      return res.status(401).json({ message: "User already exists" });
+    const existingName = await User.findOne({ name });
+    if (existingName)
+      return res.status(401).json({ message: "UserName already exists" });
 
     const encryptedPass = await bcrypt.hash(password, 10);
-    const user = await User.create({ name, email, password: encryptedPass });
-
+    const user = new User({
+      name,
+      email,
+      password: encryptedPass,
+      profilePicture: {
+        data: req.file.buffer,
+        contentType: req.file.mimetype,
+      },
+    });
+    await user.save();
     const token = jwt.sign(
       { id: user._id, email },
       "shhhh", //process.env.jwtsecret
@@ -42,9 +60,59 @@ app.post("/user", async (req, res) => {
       token,
       user,
     });
-    res.status(201).json({ message: "User created successfully" });
   } catch (err) {
     res.status(500).json({ message: "Error creating User" });
+  }
+});
+
+app.put("/user/:_id", upload.single("profilePicture"), async (req, res) => {
+  try {
+    const { _id } = req.params;
+    const { name, email, password } = req.body;
+
+    let updatedData = { name, email, password };
+
+    if (req.file) {
+      updatedData.profilePicture = {
+        data: req.file.buffer,
+        contentType: req.file.mimetype,
+      };
+    }
+    const encryptedPass = password
+      ? await bcrypt.hash(password, 10)
+      : undefined;
+    if (encryptedPass) {
+      updatedData.password = encryptedPass;
+    }
+    console.log(updatedData);
+    const updatedUser = await User.findByIdAndUpdate(_id, updatedData, {
+      new: true,
+    });
+
+    if (!updatedUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res
+      .status(200)
+      .json({ message: "User updated successfully", user: updatedUser });
+  } catch (err) {
+    console.error("Error updating user:", err);
+    res.status(500).json({ message: "Error updating user" });
+  }
+});
+
+app.delete("/user/:_id", async (req, res) => {
+  try {
+    const { _id } = req.params;
+    const deletedUser = await User.findByIdAndDelete(_id);
+    if (!deletedUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    res.status(200).json({ message: "User deleted successfully" });
+  } catch (err) {
+    console.error("Error deleting user:", err);
+    res.status(500).json({ message: "Error deleting user" });
   }
 });
 
@@ -81,20 +149,46 @@ app.post("/login", async (req, res) => {
     console.log(error);
   }
 });
-app.post("/search", async (req, res) => {
+
+app.get("/search", async (req, res) => {
   try {
-    const { name } = req.body;
-    const user = await User.findOne({ name });
-    if (!user) res.status(500).json({ message: "User not found" });
-    res.status(200).json(user);
+    const items = await User.find();
+    res.json(items);
   } catch (error) {
     console.log(error);
+  }
+});
+app.get("/chat", async (req, res) => {
+  try {
+    const items = await Chat.find();
+    res.json(items);
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Error retrieving chat" });
+  }
+});
+
+app.post("/chat", async (req, res) => {
+  const { message, sender, recipient } = req.body;
+  console.log(req.body);
+  try {
+    const chat = new Chat({
+      message,
+      sender,
+      recipient,
+    });
+    await chat.save();
+    res.status(200).json({ message: "Chat saved successfully" });
+  } catch (error) {
+    console.error("Error saving chat:", error);
+    res.status(500).json({ message: "Error saving chat" });
   }
 });
 
 app.use("/", (req, res) => {
   res.json({ message: "Server Started and database connected" });
 });
+
 let port = process.env.PORT || 3000;
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
