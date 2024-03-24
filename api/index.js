@@ -1,5 +1,4 @@
 const express = require("express");
-const app = express();
 const cors = require("cors");
 const connectToDb = require("../db");
 const { User, Chat } = require("../model");
@@ -7,6 +6,15 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const cookieParser = require("cookie-parser");
 const multer = require("multer"); // Allow image to be uploaded to the database
+const http = require("http"); // Use http module for creating the server
+const socketIo = require("socket.io");
+
+const app = express();
+app.use(cors());
+const { createServer } = require("node:http");
+const { join } = require("node:path");
+const server = http.createServer(app); // Create an http server with express app
+const io = socketIo(server);
 
 connectToDb();
 
@@ -168,28 +176,49 @@ app.get("/chat", async (req, res) => {
   }
 });
 
-app.post("/chat", async (req, res) => {
-  const { message, sender, recipient } = req.body;
-  console.log(req.body);
-  try {
-    const chat = new Chat({
-      message,
-      sender,
-      recipient,
-    });
-    await chat.save();
-    res.status(200).json({ message: "Chat saved successfully" });
-  } catch (error) {
-    console.error("Error saving chat:", error);
-    res.status(500).json({ message: "Error saving chat" });
-  }
+io.on("connection", (socket) => {
+  console.log("A user connected");
+  socket.on("chat message", async (msg) => {
+    try {
+      console.log("Message received from frontend:", msg);
+      const { sender, recipient, message } = msg;
+      const chat = new Chat({
+        message: msg.message,
+        sender: msg.user,
+        recipient: msg.partner,
+      });
+      await chat.save();
+      io.emit("chat message", msg);
+    } catch (error) {
+      console.error("Error saving chat message:", error);
+    }
+  });
+
+  socket.on("fetch messages", async ({ user, partner }) => {
+    try {
+      const messages = await Chat.find({
+        $or: [
+          { sender: user, recipient: partner },
+          { sender: partner, recipient: user },
+        ],
+      }).sort({ createdAt: 1 }); // Assuming createdAt is a timestamp field
+
+      // Emit the fetched messages back to the client
+      socket.emit("messages fetched", messages);
+    } catch (error) {
+      console.error("Error fetching messages:", error);
+    }
+  });
+
+  socket.on("disconnect", () => {
+    console.log("User disconnected");
+  });
 });
 
 app.use("/", (req, res) => {
   res.json({ message: "Server Started and database connected" });
 });
 
-let port = process.env.PORT || 3000;
-app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
+server.listen(3000, () => {
+  console.log("Server is running on port 3000");
 });
