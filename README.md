@@ -2,8 +2,9 @@ This is the server for Whisper repository or https://github.com/iQliPsE-22/serve
 
 To get started with this :
 <ul>
-  <l1><h1>npm install</h1>
-    <li><h1>cd api</h1></li>
+  <l1><h2>npm install</h2>
+    <li><h2>cd api</h2></li>
+    <li><h2>cd api</h2></li>
 </l1>
 </ul>
 
