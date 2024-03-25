@@ -1,4 +1,4 @@
-This is the server for Whisper repository or https://github.com/iQliPsE-22/server.
+This is the server for Whisper repository or https://whisper-and-hush.vercel.app/.
 
 To get started with this :
 <ul>
