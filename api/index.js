@@ -167,6 +167,26 @@ app.get("/search", async (req, res) => {
   }
 });
 
+app.get("/chats", async (req, res) => {
+  try {
+    const items = await Chat.find();
+    res.json(items);
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Error retrieving chat" });
+  }
+});
+app.get("/user/:name", async (req, res) => {
+  try {
+    const { name } = req.params;
+    console.log(name);
+    const items = await User.findOne({ name });
+    res.json(items);
+  } catch (error) {
+    console.log(error);
+  }
+});
+
 io.on("connection", (socket) => {
   console.log("A user connected");
   socket.on("chat message", async (msg) => {
