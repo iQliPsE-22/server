@@ -18,6 +18,7 @@ const chatSchema = new mongoose.Schema({
   message: String,
   sender: String,
   recipient: String,
+  time: String,
 });
 module.exports = {
   User: mongoose.model("User", userSchema),

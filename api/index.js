@@ -166,26 +166,18 @@ app.get("/search", async (req, res) => {
     console.log(error);
   }
 });
-app.get("/chat", async (req, res) => {
-  try {
-    const items = await Chat.find();
-    res.json(items);
-  } catch (error) {
-    console.log(error);
-    res.status(500).json({ message: "Error retrieving chat" });
-  }
-});
 
 io.on("connection", (socket) => {
   console.log("A user connected");
   socket.on("chat message", async (msg) => {
     try {
       console.log("Message received from frontend:", msg);
-      const { sender, recipient, message } = msg;
+      const { sender, recipient, message, time } = msg;
       const chat = new Chat({
         message: msg.message,
-        sender: msg.user,
-        recipient: msg.partner,
+        sender: msg.sender,
+        recipient: msg.recipient,
+        time: msg.time,
       });
       await chat.save();
       io.emit("chat message", msg);
@@ -194,20 +186,23 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("fetch messages", async ({ user, partner }) => {
-    try {
-      const messages = await Chat.find({
-        $or: [
-          { sender: user, recipient: partner },
-          { sender: partner, recipient: user },
-        ],
-      }).sort({ createdAt: 1 }); // Assuming createdAt is a timestamp field
+  io.on("connection", (socket) => {
+    console.log("Fetching started");
+    socket.on("fetch messages", async ({ sender, recipient }) => {
+      console.log("Fetching messages for:", sender, recipient);
+      try {
+        const messages = await Chat.find({
+          $or: [
+            { sender: sender, recipient: recipient },
+            { sender: recipient, recipient: sender },
+          ],
+        }).sort({ createdAt: 1 });
 
-      // Emit the fetched messages back to the client
-      socket.emit("messages fetched", messages);
-    } catch (error) {
-      console.error("Error fetching messages:", error);
-    }
+        socket.emit("messages fetched", messages);
+      } catch (error) {
+        console.error("Error fetching messages:", error);
+      }
+    });
   });
 
   socket.on("disconnect", () => {
