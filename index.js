@@ -77,7 +77,10 @@ app.put("/user/:_id", upload.single("profilePicture"), async (req, res) => {
   try {
     const { _id } = req.params;
     const { name, email, password } = req.body;
-
+    const existingUser = await User.findById(_id);
+    if (!existingUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
     let updatedData = { name, email, password };
 
     if (req.file) {
