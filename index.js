@@ -77,10 +77,6 @@ app.put("/user/:_id", upload.single("profilePicture"), async (req, res) => {
   try {
     const { _id } = req.params;
     const { name, email, password } = req.body;
-    const existingUser = await User.findById(_id);
-    if (!existingUser) {
-      return res.status(404).json({ message: "User not found" });
-    }
     let updatedData = { name, email, password };
 
     if (req.file) {
@@ -132,7 +128,7 @@ app.post("/login", async (req, res) => {
     const { email, password } = req.body;
     const user = await User.findOne({ email });
     if (!user) res.status(500).json({ message: "USER NOT EXIST" });
-    //match the password
+    
     if (user && (await bcrypt.compare(password, user.password))) {
       const token = jwt.sign(
         { id: user._id },
