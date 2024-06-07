@@ -1,7 +1,7 @@
 const express = require("express");
 const cors = require("cors");
-const connectToDb = require("../db");
-const { User, Chat } = require("../model");
+const connectToDb = require("./db");
+const { User, Chat } = require("./model");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const cookieParser = require("cookie-parser");
