@@ -4,8 +4,8 @@ services:
     env: node
     plan: free
     region: oregon
-    buildCommand: "npm install"
-    startCommand: "node server.js"
+    buildCommand: "npm install && npm run build"
+    startCommand: "npm run start"
     autoDeploy: true
     envVars:
       - key: NODE_ENV

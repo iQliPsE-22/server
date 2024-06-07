@@ -4,6 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "start": "node index.js",
+    "build": "next build",
+    "dev": "next dev",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
