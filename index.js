@@ -28,11 +28,19 @@ const upload = multer({ storage: storage });
 app.post("/user", upload.single("profilePicture"), async (req, res) => {
   try {
     console.log(req.body);
+    if (!req.file)
+      return res
+        .status(400)
+        .json({ message: "Please upload a profile picture" });
+
+    if (!req.body.name || !req.body.email || !req.body.password) {
+      return res.status(400).json({ message: "Please fill all the fields" });
+    }
     console.log(req.file);
     const { name, email, password } = req.body;
     const existingUser = await User.findOne({ email });
     if (existingUser)
-      return res.status(401).json({ message: "User already exists" });
+      return res.status(401).json({ message: "Email already exists" });
     const existingName = await User.findOne({ name });
     if (existingName)
       return res.status(401).json({ message: "UserName already exists" });
@@ -126,9 +134,18 @@ app.delete("/user/:_id", async (req, res) => {
 app.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
+    console.log(req.body);
+    if (!email || !password) {
+      return res.status(400).json({ message: "Please fill all the fields" });
+    }
     const user = await User.findOne({ email });
-    if (!user) res.status(500).json({ message: "USER NOT EXIST" });
-    
+    if (!user) {
+      console.log("user not found");
+      return res.status(401).json({ message: "Invalid Email" });
+    } else if (!(await bcrypt.compare(password, user.password))) {
+      console.log("password not matched");
+      return res.status(401).json({ message: "Invalid Password" });
+    }
     if (user && (await bcrypt.compare(password, user.password))) {
       const token = jwt.sign(
         { id: user._id },
